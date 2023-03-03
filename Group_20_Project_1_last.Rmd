@@ -37,7 +37,7 @@ proportion_education_expenditure<-read.csv("Group_20_Data_6.csv")
 last_data_set<-literacy_rate %>%
   filter(Year == 2010 | Year == 2000 | Year == 2015 |Year == 2018 | Year == 2005) %>%
   inner_join(proportion_education_expenditure, by = c("Entity", "Code", "Year"))%>%
-  inner_join(hunger_index[,-5], by = c("Entity", "Code", "Year"))%>%
+  inner_join(hunger_index[,-6], by = c("Entity", "Code", "Year"))%>%
   inner_join(GDP[,c(-4,-6,-8)], by = c("Entity", "Code", "Year"))%>%
   inner_join(food_supply[,-5], by = c("Entity", "Code", "Year"))%>%
 #  inner_join(education_spending[,-5], by = c("Entity", "Code", "Year"))%>%
