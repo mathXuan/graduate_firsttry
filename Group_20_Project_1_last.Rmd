@@ -1,0 +1,147 @@
+---
+title: Group_20_Project_1
+author: "Kyriaki Karachaliou, Yitao Lin, Kainan Liu, Xuan Sun, Xiyao Yang"
+date: "2023-03-01"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
+```
+
+```{r loadpackages, eval=TRUE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(skimr)
+library(kableExtra)
+library(tidyr)
+library(GGally)
+library(gridExtra)
+library(tidyverse)
+```
+
+
+
+```{r data1, echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE}
+setwd("E:/slides/Data Analysis Skills/group study/data set")
+alcohol<-read.csv("Group_20_Data_1.csv")
+#education_spending<-read.csv("education spending.csv")
+food_supply<-read.csv("Group_20_Data_2.csv")
+GDP<-read.csv("Group_20_Data_3.csv")
+hunger_index<-read.csv("Group_20_Data_4.csv")
+literacy_rate<-read.csv("Group_20_Data_5.csv")
+proportion_education_expenditure<-read.csv("Group_20_Data_6.csv")
+
+
+#link all dataset together(try to link all varibales, but some of them have too many NA, in order to get as many obersivation as possible, we have to delete some variables)
+last_data_set<-literacy_rate %>%
+  filter(Year == 2010 | Year == 2000 | Year == 2015 |Year == 2018 | Year == 2005) %>%
+  inner_join(proportion_education_expenditure, by = c("Entity", "Code", "Year"))%>%
+  inner_join(hunger_index[,-5], by = c("Entity", "Code", "Year"))%>%
+  inner_join(GDP[,c(-4,-6,-8)], by = c("Entity", "Code", "Year"))%>%
+  inner_join(food_supply[,-5], by = c("Entity", "Code", "Year"))%>%
+#  inner_join(education_spending[,-5], by = c("Entity", "Code", "Year"))%>%
+  inner_join(alcohol, by = c("Entity", "Code", "Year"))%>%
+  rename(alcohol = Total.alcohol.consumption.per.capita..liters.of.pure.alcohol..projected.estimates..15..years.of.age.,
+         literacy_rate = Literacy.rates..World.Bank..CIA.World.Factbook..and.other.sources.,
+         expend_on_edu = Government.expenditure.on.education..total....of.government.expenditure.,
+         GDP = GDP.per.capita,
+         food_supply = Daily.caloric.supply..OWID.based.on.UN.FAO...historical.sources.,
+         population = Population..historical.estimates.)%>%
+  drop_na(alcohol,literacy_rate,expend_on_edu,GDP,food_supply,population) %>%
+  distinct(Code, .keep_all = TRUE)%>%
+  select(-population)
+```
+
+```{r data, echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE}
+data <- last_data_set
+
+lit <- data %>%
+  select(literacy_rate:GDP, food_supply,alcohol)
+```
+
+# Introduction {#sec:Intro}
+
+This research is to determine which variables affect the literacy rate in the country. Based on the data sets looking at the Our World in Data website, there are four explanatory variables: GDP, expend on education, alcohol, and food supply, and one response variable: literacy rate, there are 106 countries data used in this research.
+
+Based on these explanatory variables, our research questions are:  
+    1. Does the value of the GDP of different countries affect the literacy rate of their national population?  
+    2. Do the explanatory variables other than the GDP factor affect the country's literacy rate?
+
+
+In particular, this report presents numerical and graphical summaries of the literacy rate of the countries.
+
+# Numerical summarise {#sec:NS}
+Summary statistics of the literacy rate and other variables are presented in the following table.
+
+```{r table}
+my_skim <- skim_with(numeric = sfl(hist = NULL), 
+                     base = sfl(n = length))
+my_skim(lit) %>%
+  transmute(Variable=skim_variable, n = n, Mean=numeric.mean, SD=numeric.sd,
+            Min=numeric.p0, Median=numeric.p50,  Max=numeric.p100,
+            IQR = numeric.p75-numeric.p50) %>%
+  kable(caption = '\\label{tab:lit}Summary statistics 
+        on the Literacy Rate and other factors.',digits=2) %>%
+  kable_styling(font_size = 10, latex_options = "hold_position")
+```
+
+The table shows that, the literacy rate of the different countries with a minimum of 19.10% and maximum of 100%, and the median is located at 88.59%, that means half of the countries have a literacy rate over 88.59%. 
+
+
+
+  
+    
+      
+      
+# Illuminating visualizations of the data  {#sec:IVD}
+
+## The Scatplot: Literacy Rate vs GDP
+
+The following figure is the scatplot of the Literacy Rate vs GDP.
+
+```{r scatplot, eval = TRUE, out.width = '70%', fig.align = "center", fig.pos = "h", warning = FALSE, fig.cap = "\\label{fig:scat} Relationship between GDP and literacy"}
+
+ggplot(data=lit,mapping = aes(x=GDP,y=literacy_rate))+
+  geom_point()+
+  labs(x = "GDP", y = "literacy (%)",
+       title = 'Literacy Rate vs GDP') 
+```
+
+The figure shows that, the relationship between literacy rate and  GDP is a positive relation, as the GDP increase the literacy rate increase.
+
+## The plot of Literacy and other factors
+
+The following figure is the plot of Literacy Rate and other variables, which also include the correlations.
+
+```{r pairplot,  eval = TRUE, out.width = '75%', fig.align = "center", fig.pos = "!", warning = FALSE, fig.cap = "\\label{fig:pair} Relationship between literacy and other factors"}
+ggpairs(lit)
+```
+
+According to the figure, the correlation between the literacy rate and GDP is 0.555, indicating a positive relationship. Additionally, both food supply and alcohol consumption also have a positive relationship with the literacy rate, with correlations of 0.472 and 0.425, respectively. However, expenditure on education shows a weakly negative relationship with the literacy rate, with a correlation of -0.158.
+  
+  
+  
+
+```{r plots,  eval = TRUE, fig.align = "center", fig.pos = "h", warning = FALSE, fig.cap = "\\label{fig:plots} The plots of literacy and other factors"}
+p1=ggplot(data=lit,mapping = aes(x=expend_on_edu,y=literacy_rate))+
+  geom_point()+
+  labs(x = "expend on educations", y = "literacy (%)") +
+  geom_smooth(method = "lm", se = FALSE)
+
+
+p2=ggplot(data=lit,mapping = aes(x=food_supply,y=literacy_rate))+
+  geom_point()+
+  labs(x = "food supply", y = "") +
+  geom_smooth(method = "lm", se = FALSE)
+
+p3=ggplot(data=lit,mapping = aes(x=alcohol,y=literacy_rate))+
+  geom_point()+
+  labs(x = "alcohol",y = "") +
+  geom_smooth(method = "lm", se = FALSE)
+
+grid.arrange(p1,p2,p3,ncol=3)
+```
+
+
+Based on the figures, it appears that the literacy rate has a weak relationship with all the other factors. The data points are randomly distributed and some of them are far from the linear regression line, indicating that linear models have a large standard error.
